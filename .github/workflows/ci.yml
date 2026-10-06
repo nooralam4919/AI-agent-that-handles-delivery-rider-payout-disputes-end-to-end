@@ -1,0 +1,32 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start service in background
+        run: |
+          cp .env.example .env
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 3   # give it a moment to start
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PAYSWIFT_URL: http://localhost:8080
+
+      - name: Run evals
+        run: python eval.py http://localhost:8000
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
